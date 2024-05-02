@@ -165,7 +165,7 @@ Proof. reflexivity. Qed.
     commands: *)
 
 (** 
-  1.1. TODO: Extend the datatype with the two new constructs as specified.
+  1.1. Extend the datatype with the two new constructs as specified.
 *)
 Inductive com : Type :=
   | CSkip
@@ -174,7 +174,8 @@ Inductive com : Type :=
   | CIf (b : bexp) (c1 c2 : com)
   | CWhile (b : bexp) (c : com)
   | CNonDet (c1 c2 : com)
-  | CCondGuard (b : bexp) (c : com)
+  | CCondGuard (b : bexp) (c : com).
+
 
 (** As for expressions, we can use a few [Notation] declarations to
     make reading and writing Imp programs more convenient. *)
@@ -199,20 +200,24 @@ Notation "'if' x 'then' y 'else' z 'end'" :=
 Notation "'while' x 'do' y 'end'" :=
          (CWhile x y)
             (in custom com at level 89, x at level 99, y at level 99) : com_scope.
-Notation "c1 !! c2" :=
-         (CNonDet c1 c2)
-            (in custom com at level 91, c1 at level 99, c2 at level 99) : com_scope.
-Notation "b -> c" :=
-         (CCondGuard b c)
-            (in custom com at level 89, x at level 99, y at level 99) : com_scope.
+(* TODO review the levels later in the labs *)
+Notation "x !! y" :=
+         (CNonDet x y)
+            (in custom com at level 90, right associativity) : com_scope.
+Notation "x -> y" :=
+         (CCondGuard x y)
+            (in custom com at level 90, right associativity) : com_scope.
 
 (**
-  1.3. TODO: Define p1 and p2 as, respectively, the programs:
+  1.3: Define p1 and p2 as, respectively, the programs:
 
                 (X := 1  !!  X := 2);  X=2 -> skip
              and
                 X:=2
 
 *)
-Example p1 := (X := 1 !! X := 2); X = 2 -> skip.
-Example p2 := X := 2.
+
+Check <{ ((X := 1) !! (X := 2)); (X = 2) -> skip }>.
+
+Example p1 := <{ ((X := 1) !! (X := 2)); (X = 2) -> skip }>.
+Example p2 := <{(X := 2)}>.

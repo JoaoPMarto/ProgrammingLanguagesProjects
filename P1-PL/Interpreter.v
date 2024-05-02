@@ -14,14 +14,14 @@ Inductive interpreter_result : Type :=
     bit of auxiliary notation to hide the plumbing involved in
     repeatedly matching against optional states. *)
 
-(*
+
 Notation "'LETOPT' x <== e1 'IN' e2"
   := (match e1 with
           | Some x => e2
           | None => None
        end)
 (right associativity, at level 60).
-*)
+
 
 (**
   2.1. TODO: Implement ceval_step as specified. To improve readability,
@@ -29,11 +29,46 @@ Notation "'LETOPT' x <== e1 'IN' e2"
              See the notation LETOPT in the ImpCEval chapter.
 *)
 
-Fixpoint ceval_step (st : state) (c : com) (continuation: list (state * com)) (i : nat)
+Fixpoint ceval_aux (st : state) (c : com) (continuation: list (state * com)) (i : nat)
+                    : option state :=
+  match i with
+    | O => None
+    | S i' =>
+      match c with
+        | <{ skip }> =>
+            Some st
+        | <{ l := a1 }> =>
+            Some (l !-> aeval st a1 ; st)
+        | <{ c1 ; c2 }> =>
+            LETOPT st' <== ceval_aux st c1 continuation i' IN
+            ceval_aux st' c2 continuation i'
+        | <{ if b then c1 else c2 end }> =>
+            if (beval st b)
+              then ceval_aux st c1 continuation i'
+              else ceval_aux st c2 continuation i'
+        | <{ while b1 do c1 end }> =>
+            if (beval st b1)
+            then LETOPT st' <== ceval_aux st c1 continuation i' IN
+                 ceval_aux st' c continuation i'
+            else Some st
+        | <{ c1 !! c2 }> => ceval_aux st c1 ([(st, c2)] ++ continuation) i'
+        | <{ b -> c }> => if (beval st b) 
+            then ceval_aux st c continuation i'
+            else match continuation with
+              | [] => None 
+              | (aux_st, aux_c2)::t => ceval_aux aux_st aux_c2 continuation i'
+              end
+      end
+    end.
+
+Definition ceval_step (st : state) (c : com) (continuation: list (state * com)) (i : nat)
                     : interpreter_result :=
   match i with
-  | (* TODO *)
-  | (* TODO *)
+  | O => OutOfGas
+  | S i' => match ceval_aux st c continuation i with
+    | None => OutOfGas
+    | _ => Success (st, continuation)
+    end
   end.
 
 
