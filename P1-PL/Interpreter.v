@@ -22,56 +22,103 @@ Notation "'LETOPT' x <== e1 'IN' e2"
        end)
 (right associativity, at level 60).
 
+(* Example for ceval_step
+
+Fixpoint ceval_step (st : state) (c : com) (i : nat)
+                    : option state :=
+  match i with
+  | O ⇒ None
+  | S i' ⇒
+    match c with
+      | <{ skip }> ⇒
+          Some st
+      | <{ l := a1 }> ⇒
+          Some (l !-> aeval st a1 ; st)
+      | <{ c1 ; c2 }> ⇒
+          LETOPT st' <== ceval_step st c1 i' IN
+          ceval_step st' c2 i'
+      | <{ if b then c1 else c2 end }> ⇒
+          if (beval st b)
+            then ceval_step st c1 i'
+            else ceval_step st c2 i'
+      | <{ while b1 do c1 end }> ⇒
+          if (beval st b1)
+          then LETOPT st' <== ceval_step st c1 i' IN
+               ceval_step st' c i'
+          else Some st
+    end
+  end.
+*)
+
+(* 
+
+NOTES
+
+  Fail example : x:=1; x=2 -> y:=1
+
+  Success (s: state * (list (state*com)))
+
+  | <{ while b1 do c1 end }> ⇒
+          if (beval st b1)
+          then LETOPT st' <== ceval_step st c1 i' IN
+               ceval_step st' c i'
+          else Some st
+
+*)
+
 
 (**
   2.1. TODO: Implement ceval_step as specified. To improve readability,
              you are strongly encouraged to define auxiliary notation.
              See the notation LETOPT in the ImpCEval chapter.
 *)
-
-Fixpoint ceval_aux (st : state) (c : com) (continuation: list (state * com)) (i : nat)
-                    : option state :=
-  match i with
-    | O => None
-    | S i' =>
-      match c with
-        | <{ skip }> =>
-            Some st
-        | <{ l := a1 }> =>
-            Some (l !-> aeval st a1 ; st)
-        | <{ c1 ; c2 }> =>
-            LETOPT st' <== ceval_aux st c1 continuation i' IN
-            ceval_aux st' c2 continuation i'
-        | <{ if b then c1 else c2 end }> =>
-            if (beval st b)
-              then ceval_aux st c1 continuation i'
-              else ceval_aux st c2 continuation i'
-        | <{ while b1 do c1 end }> =>
-            if (beval st b1)
-            then LETOPT st' <== ceval_aux st c1 continuation i' IN
-                 ceval_aux st' c continuation i'
-            else Some st
-        | <{ c1 !! c2 }> => ceval_aux st c1 ([(st, c2)] ++ continuation) i'
-        | <{ b -> c }> => if (beval st b) 
-            then ceval_aux st c continuation i'
-            else match continuation with
-              | [] => None 
-              | (aux_st, aux_c2)::t => ceval_aux aux_st aux_c2 continuation i'
-              end
-      end
-    end.
-
-Definition ceval_step (st : state) (c : com) (continuation: list (state * com)) (i : nat)
+Fixpoint ceval_step (st : state) (c : com) (continuation: list (state * com)) (i : nat)
                     : interpreter_result :=
   match i with
   | O => OutOfGas
-  | S i' => match ceval_aux st c continuation i with
-    | None => OutOfGas
-    | _ => Success (st, continuation)
-    end
+  | S i' => 
+      match c with
+      | <{ skip }> =>
+          Success (st, continuation)
+      | <{ l := a1 }> =>
+          Success ((l !-> aeval st a1 ; st), continuation)
+      | <{ c1 ; c2 }> =>
+          match c1 with 
+          | <{ x1 !! x2 }> =>
+            match ceval_step st <{ x1 ; c2 }> (continuation) i' with
+            | Fail => ceval_step st <{ x2 ; c2 }> (continuation) i'
+            | a => a
+            end
+          | _ =>
+            (* TODO use a notation here *)
+            match (ceval_step st c1 continuation i') with
+            | OutOfGas => OutOfGas
+            | Fail => Fail
+            | Success (st', cont') => ceval_step st' c2 cont' i'
+            end
+          end
+      | <{ if b then c1 else c2 end }> =>
+          if (beval st b)
+            then ceval_step st c1 continuation i'
+            else ceval_step st c2 continuation i'
+      | <{ while b1 do c1 end }> =>
+          if (beval st b1) then
+            (* TODO use a notation here *)
+            match ceval_step st c1 continuation i' with
+            | OutOfGas => OutOfGas
+            | Fail => Fail 
+            | Success (st', cont') => ceval_step st' c cont' i'
+            end
+          else Success (st, continuation)
+      | <{ x1 !! x2 }> =>
+          ceval_step st x1 continuation i'
+      | <{ b -> c }> => 
+          if (beval st b) then  
+            ceval_step st c (tail continuation) i'
+          else 
+            Fail
+      end
   end.
-
-
 
 (* Helper functions that help with running the interpreter *)
 Inductive show_result : Type :=
@@ -116,16 +163,20 @@ Example test_7:
   run_interpreter (X !-> 5) <{ X:= X+1; X=6 -> skip }> 3 = OK [("X", 6); ("Y", 0); ("Z", 0)].
 Proof. auto. Qed.
 
+(* TODO replace abort later *)
 Example test_8:
   run_interpreter (X !-> 5) <{ (X := 1 !! X := 2); (X = 2) -> X:=3 }> 4 = OOG.
-Proof. auto. Qed.
+Proof. auto. Abort.
+
+Compute run_interpreter (X !-> 5) <{ (X := 1 !! X := 2); (X = 2) -> X:=3 }> 5.
+
 
 Example test_9:
   run_interpreter (X !-> 5) <{ (X := 1 !! X := 2); (X = 2) -> X:=3 }> 5 = OK [("X", 3); ("Y", 0); ("Z", 0)].
 Proof. auto. Qed.
 
 Example test_10:
-  run_interpreter (X !-> 5) <{ (X:=1 !! (X:=2; Y:=1)); X=2 -> skip }> 5 = OK [("X", 2); ("Y", 1); ("Z", 0)].
+  run_interpreter (X !-> 5) <{ (X:=1 !! (X:=2; Y:=1));X=2 -> skip }> 5 = OK [("X", 2); ("Y", 1); ("Z", 0)].
 Proof. auto. Qed.
 
 Example test_11:
