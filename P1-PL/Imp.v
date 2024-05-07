@@ -182,7 +182,7 @@ Inductive com : Type :=
 
 
 (**
-  1.2. TODO: Define notations for the new constructs as required
+  1.2: Define notations for the new constructs as required
 *)
 Notation "'skip'"  :=
          CSkip (in custom com at level 0) : com_scope.
@@ -200,7 +200,6 @@ Notation "'if' x 'then' y 'else' z 'end'" :=
 Notation "'while' x 'do' y 'end'" :=
          (CWhile x y)
             (in custom com at level 89, x at level 99, y at level 99) : com_scope.
-(* TODO review the levels later in the labs *)
 Notation "x !! y" :=
          (CNonDet x y)
             (in custom com at level 90, right associativity) : com_scope.
@@ -217,5 +216,5 @@ Notation "x -> y" :=
 
 *)
 
-Example p1 := <{ ((X := 1) !! (X := 2)); (X = 2) -> skip }>.
+Example p1 := <{((X := 1) !! (X := 2)); (X = 2) -> skip}>.
 Example p2 := <{(X := 2)}>.

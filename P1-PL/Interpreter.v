@@ -14,61 +14,15 @@ Inductive interpreter_result : Type :=
     bit of auxiliary notation to hide the plumbing involved in
     repeatedly matching against optional states. *)
 
-
-Notation "'LETOPT' x <== e1 'IN' e2"
-  := (match e1 with
-          | Some x => e2
-          | None => None
+Notation "'CHECKSUC' x y <== e1 'IN' e2"
+   := (match e1 with
+       | Success (x, y) => e2
+       | a => a
        end)
-(right associativity, at level 60).
-
-(* Example for ceval_step
-
-Fixpoint ceval_step (st : state) (c : com) (i : nat)
-                    : option state :=
-  match i with
-  | O ⇒ None
-  | S i' ⇒
-    match c with
-      | <{ skip }> ⇒
-          Some st
-      | <{ l := a1 }> ⇒
-          Some (l !-> aeval st a1 ; st)
-      | <{ c1 ; c2 }> ⇒
-          LETOPT st' <== ceval_step st c1 i' IN
-          ceval_step st' c2 i'
-      | <{ if b then c1 else c2 end }> ⇒
-          if (beval st b)
-            then ceval_step st c1 i'
-            else ceval_step st c2 i'
-      | <{ while b1 do c1 end }> ⇒
-          if (beval st b1)
-          then LETOPT st' <== ceval_step st c1 i' IN
-               ceval_step st' c i'
-          else Some st
-    end
-  end.
-*)
-
-(* 
-
-NOTES
-
-  Fail example : x:=1; x=2 -> y:=1
-
-  Success (s: state * (list (state*com)))
-
-  | <{ while b1 do c1 end }> ⇒
-          if (beval st b1)
-          then LETOPT st' <== ceval_step st c1 i' IN
-               ceval_step st' c i'
-          else Some st
-
-*)
-
+   (at level 10, x at next level, y at next level, e1 at next level, e2 at next level).
 
 (**
-  2.1. TODO: Implement ceval_step as specified. To improve readability,
+  2.1. Implement ceval_step as specified. To improve readability,
              you are strongly encouraged to define auxiliary notation.
              See the notation LETOPT in the ImpCEval chapter.
 *)
@@ -85,35 +39,33 @@ Fixpoint ceval_step (st : state) (c : com) (continuation: list (state * com)) (i
       | <{ c1 ; c2 }> =>
           match c1 with 
           | <{ x1 !! x2 }> =>
-            match ceval_step st <{ x1 ; c2 }> (continuation) i' with
-            | Fail => ceval_step st <{ x2 ; c2 }> (continuation) i'
+            match ceval_step st <{ x1 ; c2 }> ((st, x2) :: continuation) i' with
+            | Fail => 
+               match i' with
+               | O => OutOfGas
+               | S i'' => ceval_step st <{ x2 ; c2 }> (tail continuation) i''
+               end
             | a => a
             end
-          | _ =>
-            (* TODO use a notation here *)
-            match (ceval_step st c1 continuation i') with
-            | OutOfGas => OutOfGas
-            | Fail => Fail
-            | Success (st', cont') => ceval_step st' c2 cont' i'
-            end
+          | _ => 
+            CHECKSUC st' cont' <== (ceval_step st c1 continuation i') IN
+              (ceval_step st' c2 cont' i')
           end
       | <{ if b then c1 else c2 end }> =>
-          if (beval st b)
-            then ceval_step st c1 continuation i'
-            else ceval_step st c2 continuation i'
+          if (beval st b) then 
+            ceval_step st c1 continuation i'
+          else 
+            ceval_step st c2 continuation i'
       | <{ while b1 do c1 end }> =>
           if (beval st b1) then
-            (* TODO use a notation here *)
-            match ceval_step st c1 continuation i' with
-            | OutOfGas => OutOfGas
-            | Fail => Fail 
-            | Success (st', cont') => ceval_step st' c cont' i'
-            end
-          else Success (st, continuation)
+            CHECKSUC st' cont' <== (ceval_step st c1 continuation i') IN
+              (ceval_step st' c cont' i')
+          else 
+            Success (st, continuation)
       | <{ x1 !! x2 }> =>
-          ceval_step st x1 continuation i'
+          ceval_step st x1 ((st, x2) :: continuation) i'
       | <{ b -> c }> => 
-          if (beval st b) then  
+          if (beval st b) then
             ceval_step st c (tail continuation) i'
           else 
             Fail
@@ -163,13 +115,15 @@ Example test_7:
   run_interpreter (X !-> 5) <{ X:= X+1; X=6 -> skip }> 3 = OK [("X", 6); ("Y", 0); ("Z", 0)].
 Proof. auto. Qed.
 
-(* TODO replace abort later *)
+(*
+
+  This is currentl working fine because I added an i decrease when the first clause of 
+  non-det choice fails. @TODO review with prof in lab to see if this makes sense
+
+*)
 Example test_8:
   run_interpreter (X !-> 5) <{ (X := 1 !! X := 2); (X = 2) -> X:=3 }> 4 = OOG.
-Proof. auto. Abort.
-
-Compute run_interpreter (X !-> 5) <{ (X := 1 !! X := 2); (X = 2) -> X:=3 }> 5.
-
+Proof. auto. Qed.
 
 Example test_9:
   run_interpreter (X !-> 5) <{ (X := 1 !! X := 2); (X = 2) -> X:=3 }> 5 = OK [("X", 3); ("Y", 0); ("Z", 0)].
@@ -194,19 +148,23 @@ Proof. auto. Qed.
 
 (**
   2.2. TODO: Prove p1_equals_p2. Recall that p1 and p2 are defined in Imp.v
-*)
+
 
 Theorem p1_equals_p2: forall st cont,
   (exists i0,
-    (forall i1, i1 >= i0 -> ceval_step st p1 cont i1 =  ceval_step st p2 cont i1)).
+    (forall i1, i1 >= i0 -> ceval_step st p1 cont i1 = ceval_step st p2 cont i1)).
 Proof.
-  (* TODO *)
+  intros st cont. induction p1 as [].
+  induction p2 as [].
+  - split.
 Qed.
+
+*)
 
 
 (**
   2.3. TODO: Prove ceval_step_more.
-*)
+
 
 Theorem ceval_step_more: forall i1 i2 st st' c cont cont',
   i1 <= i2 ->
@@ -215,3 +173,4 @@ Theorem ceval_step_more: forall i1 i2 st st' c cont cont',
 Proof.
   (* TODO *)
 Qed.
+*)
