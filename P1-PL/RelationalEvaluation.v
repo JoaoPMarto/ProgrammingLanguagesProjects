@@ -30,12 +30,71 @@ Reserved Notation "st1 '/' q1 '=[' c ']=>' st2 '/' q2 '/' r"
 3. TODO: Define the relational semantics (ceval) to support the required constructs.
 *)
 
-Inductive ceval : com -> state -> list (state * com) -> 
-          result -> state -> list (state * com) -> Prop :=
-| E_Skip : forall st q,
- st / q =[ skip ]=> st / q / Success
-(* TODO. Hint: follow the same structure as shown in the chapter Imp *)
+Inductive ceval : com -> state -> list (state * com) -> result -> state -> list (state * com) -> Prop :=
+  | E_Skip : forall st q,
+    st / q =[ skip ]=> st / q / Success
+  | E_Asgn : forall st q a n x,
+    aeval st a = n ->
+    st / q =[ x:= a ]=> (x !-> n ; st) / q / Success
+  | E_Seq : forall c1 c2 st st' st'' q,
+    st / q =[ c1 ]=> st' / q / Success ->
+    st' / q =[ c2 ]=> st'' / q / Success ->
+    st / q =[ c1; c2 ]=> st'' / q / Success
+  | E_IfTrue : forall st st' b c1 c2 q,
+    beval st b = true ->
+    st / q =[ c1 ]=> st' / q / Success ->
+    st / q =[ if b then c1 else c2 end]=> st' / q / Success
+  | E_IfFalse : forall st st' b c1 c2 q,
+    beval st b = false ->
+    st / q =[ c2 ]=> st' / q / Success ->
+    st / q =[ if b then c1 else c2 end]=> st' / q / Success
+  | E_WhileFalse : forall st b c q,
+    beval st b = false ->
+    st / q =[ while b do c end ]=> st / q / Success
+  | E_WhileTrue : forall st st' st'' b c q,
+      beval st b = true ->
+      st / q =[ c ]=> st' / q / Success ->
+      st' / q =[ while b do c end ]=> st'' / q / Success ->
+      st / q =[ while b do c end ]=> st'' / q / Success
+  | E_NonDet_X1 : forall st st' q q' x1 x2, 
+      st / q =[ x1 ]=> st' / q / Success -> 
+      st / q =[ x1 !! x2 ]=> st' / q' / Success
+  | E_NonDet_X2 : forall st st' q q' x1 x2, 
+      st / q =[ x2 ]=> st' / q / Success -> 
+      st / q =[ x1 !! x2 ]=> st' / q' / Success
+  | E_CondGuardTrue : forall st b q c st',
+      beval st b = true ->
+      st / q =[ c ]=> st' / q / Success ->
+      st / q =[ b -> c ]=> st' / q / Success
+  | E_CondGuardFalse : forall st b q c,
+      beval st b = false ->
+      st / q =[ b -> c ]=> st / q / Fail
 where "st1 '/' q1 '=[' c ']=>' st2 '/' q2 '/' r" := (ceval c st1 q1 r st2 q2).
+
+
+(*
+
+Example ceval_example1:
+  empty_st =[
+     X := 2;
+     if (X ≤ 1)
+       then Y := 3
+       else Z := 4
+     end
+  ]=> (Z !-> 4 ; X !-> 2).
+Proof.
+  (* We must supply the intermediate state *)
+  apply E_Seq with (X !-> 2).
+  - (* assignment command *)
+    apply E_Asgn. reflexivity.
+  - (* if command *)
+    apply E_IfFalse.
+    + reflexivity.
+    + apply E_Asgn. reflexivity.
+Qed.
+
+*)
+
 
 
 (**
@@ -44,6 +103,7 @@ where "st1 '/' q1 '=[' c ']=>' st2 '/' q2 '/' r" := (ceval c st1 q1 r st2 q2).
              ceval_example_guard3 and ceval_example_guard4.
 *)
 
+(* repeat econstructor; reflexivity. *)
 Example ceval_example_if:
 empty_st / [] =[
 X := 2;
@@ -53,8 +113,13 @@ if (X <= 1)
 end
 ]=> (Z !-> 4 ; X !-> 2) / [] / Success.
 Proof.
-  (* TODO *)
+  apply E_Seq with (X !-> 2).
+  - apply E_Asgn. reflexivity.
+  - apply E_IfFalse
+    + simpl. reflexivity.
+    + apply E_Asgn. reflexivity.
 Qed.
+
 
 
 Example ceval_example_guard1:
@@ -63,7 +128,7 @@ empty_st / [] =[
    (X = 1) -> X:=3
 ]=> (empty_st) / [] / Fail.
 Proof.
-  (* TODO *)
+  apply E_Seq with (X !-> 2).
 Qed. 
 
 Example ceval_example_guard2:
