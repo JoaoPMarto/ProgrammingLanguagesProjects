@@ -33,42 +33,42 @@ Reserved Notation "st1 '/' q1 '=[' c ']=>' st2 '/' q2 '/' r"
 Inductive ceval : com -> state -> list (state * com) -> result -> state -> list (state * com) -> Prop :=
   | E_Skip : forall st q,
     st / q =[ skip ]=> st / q / Success
-  | E_Asgn : forall st q a n x,
+  | E_Asgn : forall st q a n x suc,
     aeval st a = n ->
-    st / q =[ x:= a ]=> (x !-> n ; st) / q / Success
-  | E_Seq : forall c1 c2 st st' st'' q,
-    st / q =[ c1 ]=> st' / q / Success ->
-    st' / q =[ c2 ]=> st'' / q / Success ->
-    st / q =[ c1; c2 ]=> st'' / q / Success
-  | E_IfTrue : forall st st' b c1 c2 q,
+    st / q =[ x:= a ]=> (x !-> n ; st) / q / suc
+  | E_Seq : forall c1 c2 st st' st'' q suc,
+    st / q =[ c1 ]=> st' / q / suc ->
+    st' / q =[ c2 ]=> st'' / q / suc ->
+    st / q =[ c1; c2 ]=> st'' / q / suc
+  | E_IfTrue : forall st st' b c1 c2 q suc,
     beval st b = true ->
-    st / q =[ c1 ]=> st' / q / Success ->
-    st / q =[ if b then c1 else c2 end]=> st' / q / Success
-  | E_IfFalse : forall st st' b c1 c2 q,
+    st / q =[ c1 ]=> st' / q / suc ->
+    st / q =[ if b then c1 else c2 end]=> st' / q / suc
+  | E_IfFalse : forall st st' b c1 c2 q suc,
     beval st b = false ->
-    st / q =[ c2 ]=> st' / q / Success ->
-    st / q =[ if b then c1 else c2 end]=> st' / q / Success
-  | E_WhileFalse : forall st b c q,
+    st / q =[ c2 ]=> st' / q / suc ->
+    st / q =[ if b then c1 else c2 end]=> st' / q / suc
+  | E_WhileFalse : forall st b c q suc,
     beval st b = false ->
-    st / q =[ while b do c end ]=> st / q / Success
-  | E_WhileTrue : forall st st' st'' b c q,
+    st / q =[ while b do c end ]=> st / q / suc
+  | E_WhileTrue : forall st st' st'' b c q suc,
       beval st b = true ->
-      st / q =[ c ]=> st' / q / Success ->
-      st' / q =[ while b do c end ]=> st'' / q / Success ->
-      st / q =[ while b do c end ]=> st'' / q / Success
-  | E_NonDet_X1 : forall st st' q q' x1 x2, 
-      st / q =[ x1 ]=> st' / q / Success -> 
-      st / q =[ x1 !! x2 ]=> st' / q' / Success
-  | E_NonDet_X2 : forall st st' q q' x1 x2, 
-      st / q =[ x2 ]=> st' / q / Success -> 
-      st / q =[ x1 !! x2 ]=> st' / q' / Success
-  | E_CondGuardTrue : forall st b q c st',
+      st / q =[ c ]=> st' / q / suc ->
+      st' / q =[ while b do c end ]=> st'' / q / suc ->
+      st / q =[ while b do c end ]=> st'' / q / suc
+  | E_NonDet_X1 : forall st st' q q' x1 x2 suc, 
+      st / q =[ x1 ]=> st' / q / suc -> 
+      st / q =[ x1 !! x2 ]=> st' / q' / suc
+  | E_NonDet_X2 : forall st st' q q' x1 x2 suc, 
+      st / q =[ x2 ]=> st' / q / suc -> 
+      st / q =[ x1 !! x2 ]=> st' / q' / suc
+  | E_CondGuardTrue : forall st b q c st' suc,
       beval st b = true ->
-      st / q =[ c ]=> st' / q / Success ->
-      st / q =[ b -> c ]=> st' / q / Success
+      st / q =[ c ]=> st' / q / suc ->
+      st / q =[ b -> c ]=> st' / q / suc
   | E_CondGuardFalse : forall st b q c,
       beval st b = false ->
-      st / q =[ b -> c ]=> st / q / Fail
+      st / q =[ b -> c ]=> empty_st / q / Fail
 where "st1 '/' q1 '=[' c ']=>' st2 '/' q2 '/' r" := (ceval c st1 q1 r st2 q2).
 
 
@@ -115,7 +115,7 @@ end
 Proof.
   apply E_Seq with (X !-> 2).
   - apply E_Asgn. reflexivity.
-  - apply E_IfFalse
+  - apply E_IfFalse.
     + simpl. reflexivity.
     + apply E_Asgn. reflexivity.
 Qed.
@@ -129,6 +129,9 @@ empty_st / [] =[
 ]=> (empty_st) / [] / Fail.
 Proof.
   apply E_Seq with (X !-> 2).
+  - apply E_Asgn. reflexivity.
+  - apply E_CondGuardFalse.
+    + simpl. reflexivity.
 Qed. 
 
 Example ceval_example_guard2:
@@ -137,7 +140,11 @@ empty_st / [] =[
    (X = 2) -> X:=3
 ]=> (X !-> 3 ; X !-> 2) / [] / Success.
 Proof.
-  (* TODO *)
+  apply E_Seq with (X !-> 2).
+  - apply E_Asgn. reflexivity.
+  - apply E_CondGuardTrue.
+    + simpl. reflexivity.
+    + apply E_Asgn. reflexivity.
 Qed. 
 
 Example ceval_example_guard3: exists q,
@@ -146,7 +153,10 @@ empty_st / [] =[
    (X = 2) -> X:=3
 ]=> (X !-> 3) / q / Success.
 Proof.
-  (* TODO *)
+    eexists.
+    eapply E_Seq.
+  - apply
+  - 
 Qed.
     
 Example ceval_example_guard4: exists q,
