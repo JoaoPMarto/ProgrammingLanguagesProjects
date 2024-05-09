@@ -37,20 +37,8 @@ Fixpoint ceval_step (st : state) (c : com) (continuation: list (state * com)) (i
       | <{ l := a1 }> =>
           Success ((l !-> aeval st a1 ; st), continuation)
       | <{ c1 ; c2 }> =>
-          match c1 with 
-          | <{ x1 !! x2 }> =>
-            match ceval_step st <{ x1 ; c2 }> ((st, x2) :: continuation) i' with
-            | Fail => 
-               match i' with
-               | O => OutOfGas
-               | S i'' => ceval_step st <{ x2 ; c2 }> (tail continuation) i''
-               end
-            | a => a
-            end
-          | _ => 
-            CHECKSUC st' cont' <== (ceval_step st c1 continuation i') IN
+          CHECKSUC st' cont' <== (ceval_step st c1 continuation i') IN
               (ceval_step st' c2 cont' i')
-          end
       | <{ if b then c1 else c2 end }> =>
           if (beval st b) then 
             ceval_step st c1 continuation i'
@@ -64,11 +52,17 @@ Fixpoint ceval_step (st : state) (c : com) (continuation: list (state * com)) (i
             Success (st, continuation)
       | <{ x1 !! x2 }> =>
           ceval_step st x1 ((st, x2) :: continuation) i'
-      | <{ b -> c }> => 
+      | <{ x -> y }> => 
           if (beval st b) then
             ceval_step st c continuation i'
           else 
-            Fail
+            match continuation with
+              | [] => Fail
+              | ((st', x2') :: t) => match i' with
+                | 0 => OutOfGas
+                | S i'' => CHECKSUC st'' cont' <== (ceval_step st' x2' t i'') IN
+              (ceval_step st'' c cont' i'')
+            end
       end
   end.
 
@@ -148,9 +142,16 @@ Theorem p1_equals_p2: forall st cont,
   (exists i0,
     (forall i1, i1 >= i0 -> ceval_step st p1 cont i1 = ceval_step st p2 cont i1)).
 Proof.
-  intros st cont. induction p1 as [].
-  induction p2 as [].
-  - split.
+  intros. eexists 5.
+  - destruct i1.
+    -- reflexivity.
+    -- destruct i1; try lia.
+    --- destruct i1; try lia.
+    ---- destruct i1; try lia.
+    ----- destruct i1; try lia.
+    ------ destruct i1.
+    ------- intros. simpl. reflexivity.
+    ------- intros. simpl. reflexivity.
 Qed.
 
 *)
@@ -165,6 +166,8 @@ Theorem ceval_step_more: forall i1 i2 st st' c cont cont',
   ceval_step st c cont i1 = Success (st', cont') ->
   ceval_step st c cont i2 = Success (st', cont').
 Proof.
-  (* TODO *)
+  intros. induction i1. induction i2.
+  - rewrite H0. reflexivity.
+  -
 Qed.
 *)
