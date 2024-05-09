@@ -94,7 +94,7 @@ Qed.
 
 
 (**
-  3.1. TODO: Use the new relational semantics to prove the examples
+  3.1: Use the new relational semantics to prove the examples
              ceval_example_if, ceval_example_guard1, ceval_example_guard2,
              ceval_example_guard3 and ceval_example_guard4.
 *)

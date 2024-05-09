@@ -135,7 +135,7 @@ Proof. auto. Qed.
 
 
 (**
-  2.2. TODO: Prove p1_equals_p2. Recall that p1 and p2 are defined in Imp.v
+  2.2: Prove p1_equals_p2. Recall that p1 and p2 are defined in Imp.v
 
 
 Theorem p1_equals_p2: forall st cont,
@@ -158,7 +158,7 @@ Qed.
 
 
 (**
-  2.3. TODO: Prove ceval_step_more.
+  2.3.: Prove ceval_step_more.
 
 
 Theorem ceval_step_more: forall i1 i2 st st' c cont cont',

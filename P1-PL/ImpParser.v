@@ -359,6 +359,20 @@ Fixpoint parseSimpleCommand (steps:nat)
     TRY ' (u, rest) <- expect "skip" xs ;;
         SomeE (<{skip}>, rest)
     OR
+    TRY ' (x1, rest) <- 
+            (parseSimpleCommand steps') xs ;;
+        ' (x2, rest') <- 
+            firstExpect "!!"
+                        (parseSimpleCommand steps') rest ;;
+        SomeE (<{x1 !! x2}>, rest')
+    OR
+    TRY ' (x1, rest) <- 
+            (parseBExp steps') xs ;;
+        ' (x2, rest') <- 
+            firstExpect "->"
+                        (parseSimpleCommand steps') rest ;;
+        SomeE (<{x1 -> x2}>, rest')
+    OR
     TRY ' (e,rest) <-
             firstExpect "if"
                         (parseBExp steps') xs ;;
@@ -403,7 +417,7 @@ with parseSequencedCommand (steps:nat)
     SomeE (c, rest)
   end.
 
-Definition bignumber := 1000.
+Definition bignumber := 30.
 
 Definition parse (str : string) : optionE com :=
   let tokens := tokenize str in
@@ -461,5 +475,55 @@ Example eg2 : parse "
       end;
       "x" := "z" }>.
 Proof. cbv. reflexivity. Qed.
+
+Example eg3 : parse "
+  x := 1; 
+  x := 1; 
+  x := 1  "
+= 
+  SomeE <{
+    "x" := 1; 
+    "x" := 1; 
+    "x" := 1}>.
+Proof. cbv. reflexivity. Qed.
+
+Example eg4 : parse "
+  x := 2 !! x := 3; 
+  x = 3 -> skip   " 
+= 
+  SomeE <{
+    ("x" := 2 !! "x" := 3); 
+    "x" = 3 -> skip}>.
+Proof. cbv. reflexivity. Qed.
+
+Example eg5 : parse "
+  x := 2 !! x := 3; 
+  x = 3 -> x := 4; 
+  skip   " 
+= 
+  SomeE <{
+    ("x" := 2 !! "x" := 3); 
+    ("x" = 3 -> "x" := 4); 
+    skip}>.
+Proof. cbv. reflexivity. Qed.
+
+Example eg6 : parse "
+  x := 2 !! x := 3;
+  skip   "
+=
+  SomeE <{
+    ("x" := 2 !! "x" := 3);
+    skip}>.
+Proof. cbv. reflexivity. Qed.
+
+Example eg7 : parse "
+  x := 1 !! x := 2; 
+  x = 2 -> res := 42    "
+= 
+  SomeE <{
+    ("x" := 1 !! "x" := 2);
+    "x" = 2 -> "res" := 42}>.
+Proof. cbv. reflexivity. Qed.
+
 
 (* 2023-12-29 17:12 *)
