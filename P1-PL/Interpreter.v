@@ -53,15 +53,17 @@ Fixpoint ceval_step (st : state) (c : com) (continuation: list (state * com)) (i
       | <{ x1 !! x2 }> =>
           ceval_step st x1 ((st, x2) :: continuation) i'
       | <{ x -> y }> => 
-          if (beval st b) then
-            ceval_step st c (tail continuation) i'
+          if (beval st x) then
+            ceval_step st y continuation i'
           else 
             match continuation with
               | [] => Fail
-              | ((st', x2') :: t) => match i' with
+              | ((st', x2') :: t) => 
+                match i' with
                 | 0 => OutOfGas
                 | S i'' => CHECKSUC st'' cont' <== (ceval_step st' x2' t i'') IN
-              (ceval_step st'' c cont' i'')
+                           (ceval_step st'' c cont' i'')
+                end
             end
       end
   end.
@@ -136,7 +138,7 @@ Proof. auto. Qed.
 
 (**
   2.2: Prove p1_equals_p2. Recall that p1 and p2 are defined in Imp.v
-
+**)
 
 Theorem p1_equals_p2: forall st cont,
   (exists i0,
@@ -154,20 +156,19 @@ Proof.
     ------- intros. simpl. reflexivity.
 Qed.
 
-*)
 
 
 (**
   2.3.: Prove ceval_step_more.
-
+**)
 
 Theorem ceval_step_more: forall i1 i2 st st' c cont cont',
   i1 <= i2 ->
   ceval_step st c cont i1 = Success (st', cont') ->
   ceval_step st c cont i2 = Success (st', cont').
 Proof.
-  intros. induction i1. induction i2.
-  - rewrite H0. reflexivity.
+  intros. induction i2.
+  - inversion H. rewrite <- H1. rewrite H0. reflexivity.
   -
 Qed.
-*)
+
