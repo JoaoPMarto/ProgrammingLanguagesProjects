@@ -54,7 +54,7 @@ Fixpoint ceval_step (st : state) (c : com) (continuation: list (state * com)) (i
           ceval_step st x1 ((st, x2) :: continuation) i'
       | <{ x -> y }> => 
           if (beval st b) then
-            ceval_step st c continuation i'
+            ceval_step st c (tail continuation) i'
           else 
             match continuation with
               | [] => Fail

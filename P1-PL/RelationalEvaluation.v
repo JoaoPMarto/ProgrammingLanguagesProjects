@@ -26,6 +26,9 @@ Reserved Notation "st1 '/' q1 '=[' c ']=>' st2 '/' q2 '/' r"
  q2 constr at next level,
  r constr at next level).
 
+(* 
+3: Define the relational semantics (ceval) to support the required constructs.
+*)
 Inductive ceval : com -> state -> list (state * com) -> result -> state -> list (state * com) -> Prop :=
   | E_Skip : forall st q,
     st / q =[ skip ]=> st / q / Success
@@ -182,7 +185,7 @@ Infix "==" := cequiv (at level 99).
 
 
 (**
-  3.2 : Prove the properties below.
+  3.2: Prove the properties below.
 *)
 
 (*

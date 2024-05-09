@@ -25,7 +25,7 @@ From FirstProject Require Import Interpreter.
     name of a file to put the extracted code into. *)
 
 (* JFF: I commented next line to avoid creation of unnecessary file *)
-Extraction "imp1.ml" ceval_step.
+(* Extraction "imp1.ml" ceval_step. *)
 
 (** When Coq processes this command, it generates a file [imp1.ml]
     containing an extracted version of [ceval_step], together with
