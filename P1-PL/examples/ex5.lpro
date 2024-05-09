@@ -1,0 +1,1 @@
+x := 4; while x <= 100 do x := x * x end; y := 5; y := y * y !! y := x; 100 <= y -> res := y  

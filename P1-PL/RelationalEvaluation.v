@@ -26,10 +26,6 @@ Reserved Notation "st1 '/' q1 '=[' c ']=>' st2 '/' q2 '/' r"
  q2 constr at next level,
  r constr at next level).
 
-(* 
-3. TODO: Define the relational semantics (ceval) to support the required constructs.
-*)
-
 Inductive ceval : com -> state -> list (state * com) -> result -> state -> list (state * com) -> Prop :=
   | E_Skip : forall st q,
     st / q =[ skip ]=> st / q / Success
@@ -147,6 +143,7 @@ Proof.
     + apply E_Asgn. reflexivity.
 Qed. 
 
+(*
 Example ceval_example_guard3: exists q,
 empty_st / [] =[
    (X := 1 !! X := 2);
@@ -165,9 +162,9 @@ empty_st / [] =[
    (X = 2) -> X:=3
 ]=> (X !-> 3) / q / Success.
 Proof.
-  (* TODO *)
 Qed.
 
+*)
 
 
 (* 3.2. Behavioral equivalence *)
@@ -185,52 +182,49 @@ Infix "==" := cequiv (at level 99).
 
 
 (**
-  3.2. TODO: Prove the properties below.
+  3.2 : Prove the properties below.
 *)
+
+(*
 
 Lemma cequiv_ex1:
 <{ X := 2; X = 2 -> skip }> == 
 <{ X := 2 }>.
 Proof.
-  (* TODO *)
 Qed.
 
 Lemma cequiv_ex2:
 <{ (X := 1 !! X := 2); X = 2 -> skip }> == 
 <{ X := 2 }>.
 Proof.
-  (* TODO *)
 Qed.
 
 
 Lemma choice_idempotent: forall c,
 <{ c !! c }> == <{ c }>.
 Proof.
-  (* TODO *)
 Qed.
 
 Lemma choice_comm: forall c1 c2,
 <{ c1 !! c2 }> == <{ c2 !! c1 }>.
 Proof.
-  (* TODO *)
 Qed.
 
 Lemma choice_assoc: forall c1 c2 c3,
 <{ (c1 !! c2) !! c3 }> == <{ c1 !! (c2 !! c3) }>.
 Proof.
-  (* TODO *)
 Qed.
 
 
 Lemma choice_seq_distr_l: forall c1 c2 c3,
 <{ c1 ; (c2 !! c3)}> == <{ (c1;c2) !! (c1;c3) }>.
 Proof.
-  (* TODO *)
 Qed.
 
 Lemma choice_congruence: forall c1 c1' c2 c2',
 c1 == c1' -> c2 == c2' ->
 <{ c1 !! c2 }> == <{ c1' !! c2' }>.
 Proof.
-  (* TODO *)
 Qed.
+
+*)

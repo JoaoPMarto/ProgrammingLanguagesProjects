@@ -66,7 +66,7 @@ Fixpoint ceval_step (st : state) (c : com) (continuation: list (state * com)) (i
           ceval_step st x1 ((st, x2) :: continuation) i'
       | <{ b -> c }> => 
           if (beval st b) then
-            ceval_step st c (tail continuation) i'
+            ceval_step st c continuation i'
           else 
             Fail
       end
@@ -115,12 +115,6 @@ Example test_7:
   run_interpreter (X !-> 5) <{ X:= X+1; X=6 -> skip }> 3 = OK [("X", 6); ("Y", 0); ("Z", 0)].
 Proof. auto. Qed.
 
-(*
-
-  This is currentl working fine because I added an i decrease when the first clause of 
-  non-det choice fails. @TODO review with prof in lab to see if this makes sense
-
-*)
 Example test_8:
   run_interpreter (X !-> 5) <{ (X := 1 !! X := 2); (X = 2) -> X:=3 }> 4 = OOG.
 Proof. auto. Qed.
