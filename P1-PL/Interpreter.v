@@ -167,8 +167,27 @@ Theorem ceval_step_more: forall i1 i2 st st' c cont cont',
   ceval_step st c cont i1 = Success (st', cont') ->
   ceval_step st c cont i2 = Success (st', cont').
 Proof.
-  intros. induction i2.
-  - inversion H. rewrite <- H1. rewrite H0. reflexivity.
-  -
+  intros. induction i1.
+  - discriminate H0.
+  - destruct i2.
+    -- lia.
+    -- assert (Hle': i1 <= i2) by lia. destruct c.
+      --- inversion H0. reflexivity.
+      --- inversion H0. reflexivity.
+      --- simpl. destruct (ceval_step st c1 cont i2).
+        ---- admit.
+        ---- admit.
+        ---- admit.
+      --- simpl. destruct (beval st b).
+        ---- admit.
+        ---- admit.
+      --- simpl. destruct (beval st b).
+        ---- destruct (ceval_step st c cont i2).
+          ----- admit.
+          ----- admit.
+          ----- admit.
+        ---- admit.
+      --- simpl. admit.
+      --- admit.
 Qed.
 
