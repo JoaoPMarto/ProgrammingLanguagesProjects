@@ -18,15 +18,14 @@ let run fuel s =
     NoneE _ -> print_endline ("Syntax error");
   | SomeE c ->
       match (ceval_step empty_st c [] fuel) with
-        Fail ->
+        Fail (er, i) ->
           print_endline
-            ("Failed!")
-      | OutOfGas ->
+            ("Failed with error: " ^ String.concat "" (List.map (String.make 1) er) ^ " at step " ^ string_of_int i)
+      | OutOfGas _ ->
           print_endline
             ("Still running after " ^ string_of_int fuel ^ " steps")
-      | Success (res, _) ->
-          print_endline (
-            string_of_int (res (explode "res"))))
+      | Success ((res, _), i) ->
+          print_endline ("res := " ^ string_of_int (res (explode "res")) ^ ", steps taken " ^ string_of_int i))
 ;;
 
 let usage_msg = "interpreter <file.lpro> [-n interpreter_steps]"
