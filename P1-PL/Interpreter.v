@@ -162,6 +162,7 @@ Qed.
 
 (**
   2.3.: Prove ceval_step_more.
+**)
 
 Theorem ceval_step_more: forall i1 i2 st st' c cont cont',
   i1 <= i2 ->
@@ -190,6 +191,5 @@ Proof.
         ---- admit.
       --- simpl. admit.
       --- admit.
-Qed.
-
-**)
+Admitted.
+(*Qed.*)
