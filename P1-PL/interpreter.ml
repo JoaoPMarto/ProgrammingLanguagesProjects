@@ -24,8 +24,8 @@ let run fuel s =
       | OutOfGas _ ->
           print_endline
             ("Still running after " ^ string_of_int fuel ^ " steps")
-      | Success ((res, _), i) ->
-          print_endline ("res := " ^ string_of_int (res (explode "res")) ^ ", steps taken " ^ string_of_int i))
+      | Success (res, _) ->
+          print_endline (string_of_int (res (explode "res"))))
 ;;
 
 let usage_msg = "interpreter <file.lpro> [-n interpreter_steps]"
