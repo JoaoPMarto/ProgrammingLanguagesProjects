@@ -34,11 +34,11 @@ Inductive ceval : com -> state -> list (state * com) -> result -> state -> list 
     st / q =[ skip ]=> st / q / Success
   | E_Asgn : forall st q a n x suc,
     aeval st a = n ->
-    st / q =[ x:= a ]=> (x !-> n ; st) / q / suc
-  | E_Seq : forall c1 c2 st st' st'' q suc,
-    st / q =[ c1 ]=> st' / q / suc ->
-    st' / q =[ c2 ]=> st'' / q / suc ->
-    st / q =[ c1; c2 ]=> st'' / q / suc
+    st / q =[ x := a ]=> (x !-> n ; st) / q / suc
+  | E_Seq : forall c1 c2 st st' st'' q q' q'' suc,
+    st / q =[ c1 ]=> st' / q' / suc ->
+    st' / q' =[ c2 ]=> st'' / q'' / suc ->
+    st / q =[ c1; c2 ]=> st'' / q'' / suc
   | E_IfTrue : forall st st' b c1 c2 q suc,
     beval st b = true ->
     st / q =[ c1 ]=> st' / q / suc ->
@@ -61,13 +61,24 @@ Inductive ceval : com -> state -> list (state * com) -> result -> state -> list 
   | E_NonDet_X2 : forall st st' q q' x1 x2 suc, 
       st / q =[ x2 ]=> st' / q' / suc -> 
       st / q =[ x1 !! x2 ]=> st' / ((st, x1) :: q') / suc
-  | E_CondGuardTrue : forall st b q c st' suc,
+  | E_CondGuardTrue : forall st st' b q q' c suc,
       beval st b = true ->
       st / q =[ c ]=> st' / q / suc ->
-      st / q =[ b -> c ]=> st' / q / suc
-  | E_CondGuardFalse : forall st b q c,
+      st / q =[ b -> c ]=> st' / q' / suc
+  | E_CondGuardFail : forall st b c,
       beval st b = false ->
-      st / q =[ b -> c ]=> empty_st / q / Fail
+      st / [] =[ b -> c ]=> empty_st / [] / Fail
+  | E_CondGuardFalseTrue : forall st st' st'' st''' b q c c' suc,
+      st / q =[ c' ]=> st' / q / Success ->
+      st' / q =[ c ]=> st''' / q / suc ->
+      beval st'' b = false ->
+      beval st' b = true ->
+      st'' / ((st, c') :: q) =[ b -> c ]=> st''' / q / suc
+  | E_CondGuardFalseFalse : forall st st' st'' b q c c',
+      beval st'' b = false ->
+      beval st' b = false ->
+      st / q =[ c' ]=> st' / q / Success ->
+      st'' / ((st, c') :: q) =[ b -> c ]=> empty_st / [] / Fail
 where "st1 '/' q1 '=[' c ']=>' st2 '/' q2 '/' r" := (ceval c st1 q1 r st2 q2).
 
 
@@ -112,7 +123,7 @@ if (X <= 1)
 end
 ]=> (Z !-> 4 ; X !-> 2) / [] / Success.
 Proof.
-  apply E_Seq with (X !-> 2).
+  apply E_Seq with (X !-> 2) [].
   - apply E_Asgn. reflexivity.
   - apply E_IfFalse.
     + reflexivity.
@@ -127,47 +138,53 @@ empty_st / [] =[
    (X = 1) -> X:=3
 ]=> (empty_st) / [] / Fail.
 Proof.
-  apply E_Seq with (X !-> 2).
+  apply E_Seq with (X !-> 2) [].
   - apply E_Asgn. reflexivity.
-  - apply E_CondGuardFalse.
+  - apply E_CondGuardFail.
     + reflexivity.
 Qed. 
 
 Example ceval_example_guard2:
 empty_st / [] =[
    X := 2;
-   (X = 2) -> X:=3
+   (X = 2) -> X := 3
 ]=> (X !-> 3 ; X !-> 2) / [] / Success.
 Proof.
-  apply E_Seq with (X !-> 2).
+  apply E_Seq with (X !-> 2) [].
   - apply E_Asgn. reflexivity.
   - apply E_CondGuardTrue.
     + reflexivity.
     + apply E_Asgn. reflexivity.
 Qed. 
 
-(*
 Example ceval_example_guard3: exists q,
 empty_st / [] =[
    (X := 1 !! X := 2);
-   (X = 2) -> X:=3
-]=> (X !-> 3) / q / Success.
+   (X = 2) -> X := 3
+   ]=> (X !-> 3 ; X !-> 2) / q / Success.
 Proof.
-    eexists.
-    eapply E_Seq.
-Abort.
-(* Qed. *)
-    
+  eexists. eapply E_Seq.
+  - apply E_NonDet_X2. apply E_Asgn. reflexivity.
+  - simpl. apply E_CondGuardTrue.
+    -- reflexivity.
+    -- apply E_Asgn. reflexivity.
+  Unshelve. constructor.
+Qed.
+
 Example ceval_example_guard4: exists q,
 empty_st / [] =[
    (X := 1 !! X := 2);
-   (X = 2) -> X:=3
-]=> (X !-> 3) / q / Success.
+   (X = 2) -> X := 3
+   ]=> (X !-> 3 ; X !-> 2) / q / Success.
 Proof.
-  (* TODO *)
-Abort.
-
-*)
+  eexists. eapply E_Seq.
+  - apply E_NonDet_X1. apply E_Asgn. reflexivity.
+  - simpl. eapply E_CondGuardFalseTrue.
+    -- apply E_Asgn. reflexivity.
+    -- simpl. apply E_Asgn. reflexivity.
+    -- reflexivity.
+    -- reflexivity.
+Qed.
 
 
 (* 3.2. Behavioral equivalence *)

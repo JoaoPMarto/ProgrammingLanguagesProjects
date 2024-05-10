@@ -20,8 +20,8 @@
     - *ceval_example_if* proof
     - *ceval_example_guard1* proof
     - *ceval_example_guard2* proof
-    - *ceval_example_guard3* proof - not done
-    - *ceval_example_guard4* proof - not done
+    - *ceval_example_guard3* proof
+    - *ceval_example_guard4* proof
     - *cequiv_ex1* proof - not done
     - *cequiv_ex2* proof - not done
     - *choice_idempotent* proof
