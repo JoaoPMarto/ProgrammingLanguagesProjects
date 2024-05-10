@@ -142,6 +142,8 @@ Proof. auto. Qed.
 
 (**
   2.2: Prove p1_equals_p2. Recall that p1 and p2 are defined in Imp.v
+  Essentially we need to destruct five times i1 which will lead us to a point where the state is equal for both 
+  p1 and p2 since after five times both have X !-> 2 which then we can simplify and use reflexivity to solve
 **)
 
 Theorem p1_equals_p2: forall st cont,
@@ -162,6 +164,9 @@ Qed.
 
 (**
   2.3.: Prove ceval_step_more.
+  What is missing in this proof is to prove the seq, if, while, non_det and cond_guard, our attempt was
+  focused on destroying c in order to separatelly prove each individual constructor. Optionnally following 
+  with another destruct in seq would begin the needed proof for the seq.
 **)
 
 Theorem ceval_step_more: forall i1 i2 st st' c cont cont',
@@ -170,12 +175,16 @@ Theorem ceval_step_more: forall i1 i2 st st' c cont cont',
   ceval_step st c cont i2 = Success (st', cont').
 Proof.
   intros. induction i1.
+  (* absurd, i = 0 can't be success *)
   - discriminate H0.
+  (* approach to the main goal *)
   - destruct i2.
     -- lia.
+    (* attempt to prove using i1 <= i2 *)
     -- assert (Hle': i1 <= i2) by lia. destruct c.
       --- inversion H0. reflexivity.
       --- inversion H0. reflexivity.
+      (* destruct in order to try to get IHi1 *)
       --- simpl. destruct (ceval_step st c1 cont i2).
         ---- admit.
         ---- admit.
@@ -183,6 +192,7 @@ Proof.
       --- simpl. destruct (beval st b).
         ---- admit.
         ---- admit.
+      (* attempt to prove while using destruct on both b and i2 *)
       --- simpl. destruct (beval st b).
         ---- destruct (ceval_step st c cont i2).
           ----- admit.
