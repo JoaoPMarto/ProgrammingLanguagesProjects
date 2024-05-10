@@ -36,3 +36,10 @@
 
  - Added error messages to *Fail* and *OutOfGas* and used those in interpreter
 
+# Contributions
+
+ - João Marto, 102174 - Imp proofs
+ - Miguel Ferreira, 95644 - ImpParser 
+ - Tomás Duarte, 111002 - Interpreter proofs
+
+ Other tasks were done jointly
