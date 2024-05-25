@@ -163,8 +163,21 @@ Inductive ceval : com -> state -> result -> Prop :=
       beval st b = true ->
       st =[ c ]=> RError ->
       st =[ while b do c end ]=> RError
-  (* TODO *)
-
+  | E_AssertTrue : forall st l,
+      beval st l = true ->
+      st =[ assert l ]=> RNormal st
+  | E_AssertFalse : forall st l,
+      beval st l = false ->
+      st =[ assert l ]=> RError
+  | E_AssumeTrue : forall st l,
+      beval st l = true ->
+      st =[ assume l ]=> RNormal st
+  | E_NonDetChoiceX1 : forall st r x1 x2,
+      st =[ x1 ]=> r ->
+      st =[ x1 !! x2 ]=> r
+  | E_NonDetChoiceX2 : forall st r x1 x2,
+      st =[ x2 ]=> r ->
+      st =[ x1 !! x2 ]=> r
 where "st '=[' c ']=>' r" := (ceval c st r).
 
 
