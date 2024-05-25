@@ -693,15 +693,16 @@ Notation " d ; d' "
 Notation "{{ P }} d"
       := (Decorated P d)
       (in custom com at level 91, P constr) : dcom_scope.
-Notation "assert b {{ Q }}"
-      := (DCAssert b Q)
-      (in custom com at level 91, Q constr) : dcom_scope.
-Notation "assume b {{ Q }}"
-      := (DCAssume b Q)
-      (in custom com at level 91, Q constr) : dcom_scope.
-Notation "x1 !! x2 {{ Q }}"
-      := (DCNonDetChoice x1 x2 Q)
-      (in custom com at level 91, Q constr) : dcom_scope.
+(*@TODO review the following notations*)
+Notation "'assert' b {{ P }}"
+      := (DCAssert b P)
+      (in custom com at level 91, P constr) : dcom_scope.
+Notation "'assume' b {{ P }}"
+      := (DCAssume b P)
+      (in custom com at level 91, P constr) : dcom_scope.
+Notation "x1 '!!' x2 {{ P }}"
+      := (DCNonDetChoice x1 x2 P)
+      (in custom com at level 91, P constr) : dcom_scope.
 Local Open Scope dcom_scope.
 
 (** An example [decorated] program that decrements [X] to [0]: *)
