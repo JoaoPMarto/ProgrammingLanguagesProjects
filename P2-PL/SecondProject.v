@@ -693,13 +693,13 @@ Notation " d ; d' "
 Notation "{{ P }} d"
       := (Decorated P d)
       (in custom com at level 91, P constr) : dcom_scope.
-Notation "assert b {{ Q }}"
+Notation "'assert' b {{ Q }}"
       := (DCAssert b Q)
       (in custom com at level 91, Q constr) : dcom_scope.
-Notation "assume b {{ Q }}"
+Notation "'assume' b {{ Q }}"
       := (DCAssume b Q)
       (in custom com at level 91, Q constr) : dcom_scope.
-Notation "x1 !! x2 {{ Q }}"
+Notation "x1 '!!' x2 {{ Q }}"
       := (DCNonDetChoice x1 x2 Q)
       (in custom com at level 91, Q constr) : dcom_scope.
 Local Open Scope dcom_scope.
