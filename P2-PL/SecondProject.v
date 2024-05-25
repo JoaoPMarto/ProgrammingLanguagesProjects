@@ -943,10 +943,16 @@ Fixpoint verification_conditions (P : Assertion) (d : dcom) : Prop :=
   | DCPost d Q =>
       verification_conditions P d
       /\ (post d ->> Q)
-  (* TODO *)
+  | DCAssert b Q => 
+    ((P /\ b) ->> Q)%assertion
+  | DCAssume b Q => 
+    ((P /\ b) ->> Q)%assertion
+  | DCNonDetChoice x1 x2 Q =>
+    verification_conditions P x1
+    /\ verification_conditions P x2
   end.
 
-(** The key theorem states that [verification_conditions] does its job
+(** The key theorem states that [verification_conditions] does its  job
     correctly.  Not surprisingly, we need to use each of the Hoare
     Logic rules at some point in the proof. *)
 
