@@ -213,14 +213,14 @@ Theorem assume_false: forall P Q b,
        ({{P}} assume b {{Q}}).
 Proof.
   (* TODO *)
-Qed.
+Admitted.
 
 Theorem assert_implies_assume : forall P b Q,
      ({{P}} assert b {{Q}})
   -> ({{P}} assume b {{Q}}).
 Proof.
   (* TODO *)
-Qed.
+Admitted.
 
 
 (* ################################################################# *)
@@ -359,32 +359,41 @@ Qed.
 (* EXERCISE 3.1: State and prove [hoare_assert]                      *)
 (* ================================================================= *)
 
+(*
+
 Theorem hoare_assert: forall P (b: bexp),
-  (*TODO: Hoare proof rule for [assert b] *)
+  Hoare proof rule for [assert b]
 Proof.
-  (* TODO *)
 Qed.
+
+*)
 
 (* ================================================================= *)
 (* EXERCISE 3.2: State and prove [hoare_assume]                      *)
 (* ================================================================= *)
 
+(*
+
 Theorem hoare_assume: forall (P:Assertion) (b:bexp),
-  (*TODO: Hoare proof rule for [assume b] *)
+  Hoare proof rule for [assume b]
 Proof.
-  (* TODO *)
 Qed.
+
+*)
 
 
 (* ================================================================= *)
 (* EXERCISE 3.3: State and prove [hoare_choice]                      *)
 (* ================================================================= *)
 
+(*
+
 Theorem hoare_choice' : forall P c1 c2 Q,
-  (*TODO: Hoare proof rule for [c1 !! c2] *)
+  Hoare proof rule for [c1 !! c2]
 Proof.
-  (* TODO *)
 Qed.
+
+*)
 
 
 (* ================================================================= *)
@@ -393,13 +402,16 @@ Qed.
 (*               words what this example is demonstrating.           *)                                            
 (* ================================================================= *)
 
+(*
+
 Example hoare_choice_example:
   {{ X = 1 }}
   X := X + 1 !! X := X + 2
   {{ X = 2 \/ X = 3 }}.
 Proof.
-  ( * TODO *)
 Qed.
+
+*)
 
 
 (* ################################################################# *)
@@ -435,10 +447,26 @@ Inductive cstep : (com * result)  -> (com * result) -> Prop :=
   | CS_While : forall st b c1,
           <{while b do c1 end}> / st 
       --> <{ if b then (c1; while b do c1 end) else skip end }> / st
-
-  (* TODO *)
-  
-
+  | CS_AssertStep : forall b b' st,
+      b / st -->b b' ->
+      <{ assert b }> / RNormal st --> <{ assert b' }> / RNormal st
+  | CS_AssertTrue : forall st,
+      <{ assert true }> / RNormal st --> <{ skip }> / RNormal st
+  | CS_AssertFalse : forall st,
+      <{ assert false }> / RNormal st --> <{ skip }> / RError
+  | CS_AssumeStep : forall b b' st,
+      b / st -->b b' ->
+      <{ assume b }> / RNormal st --> <{ assume b' }> / RNormal st
+  | CS_AssumeTrue : forall st,
+      <{ assume true }> / RNormal st --> <{ skip }> / RNormal st
+  | CS_AssumeFalse : forall st,
+      <{ assume false }> / RNormal st --> <{ skip }> / RError (*@TODO*)
+  | CS_NonDetX1 : forall x1 x1' x2 st st',
+      x1 / st --> x1' / st' ->
+     <{ x1 !! x2 }> / st --> <{ x1' }> / st'
+  | CS_NonDetX2 : forall x1 x2 x2' st st',
+      x2 / st --> x2' / st' ->
+     <{ x1 !! x2 }> / st --> <{ x2' }> / st'
   where " t '/' st '-->' t' '/' st' " := (cstep (t,st) (t',st')).
 
 Definition cmultistep := multi cstep.
@@ -499,7 +527,7 @@ Example prog1_example1:
     /\ st' X = 2.
 Proof.
   (* TODO *)
-Qed.
+Admitted.
 
 
 (* ################################################################# *)
@@ -511,7 +539,7 @@ Lemma one_step_aeval_a: forall st a a',
   aeval st a = aeval st a'.
 Proof.
   (* TODO (Hint: you can prove this by induction on a) *)
-Qed.
+Admitted.
 
 
 (* ================================================================= *)
@@ -620,9 +648,11 @@ Inductive dcom : Type :=
   (* ->> {{ P }} d *)
 | DCPost (d : dcom) (Q : Assertion)
   (* d ->> {{ Q }} *)
-| DCAssert (* TODO *) 
-| DCAssume (* TODO *)
-| DCNonDetChoice (* TODO *)
+| DCAssert (l : bexp) (Q : Assertion)
+  (* assert l {{ Q }} *)
+| DCAssume (l : bexp) (Q : Assertion)
+  (* assume l {{ Q }} *)
+| DCNonDetChoice (d1 d2 : dcom) (Q : Assertion).
 
 (** To provide the initial precondition that goes at the very top of a
     decorated program, we introduce a new type [decorated]: *)
@@ -663,10 +693,15 @@ Notation " d ; d' "
 Notation "{{ P }} d"
       := (Decorated P d)
       (in custom com at level 91, P constr) : dcom_scope.
-
-
-(* TODO: notation for the three new constructs *)
-
+Notation "assert b {{ Q }}"
+      := (DCAssert b Q)
+      (in custom com at level 91, Q constr) : dcom_scope.
+Notation "assume b {{ Q }}"
+      := (DCAssume b Q)
+      (in custom com at level 91, Q constr) : dcom_scope.
+Notation "x1 !! x2 {{ Q }}"
+      := (DCNonDetChoice x1 x2 Q)
+      (in custom com at level 91, Q constr) : dcom_scope.
 Local Open Scope dcom_scope.
 
 (** An example [decorated] program that decrements [X] to [0]: *)
@@ -702,7 +737,9 @@ Fixpoint extract (d : dcom) : com :=
   | DCWhile b _ d _    => CWhile b (extract d)
   | DCPre _ d          => extract d
   | DCPost d _         => extract d
-  (* TODO *)
+  | DCAssert l _       => CAssert l
+  | DCAssume l _       => CAssume l
+  | DCNonDetChoice d1 d2 _ => CNonDetChoice (extract d1) (extract d2)
   end.
 
 Definition extract_dec (dec : decorated) : com :=
@@ -735,7 +772,9 @@ Fixpoint post (d : dcom) : Assertion :=
   | DCWhile _ _ _ Q         => Q
   | DCPre _ d               => post d
   | DCPost _ Q              => Q
-  (* TODO *)
+  | DCAssert _ Q            => Q
+  | DCAssume _ Q            => Q
+  | DCNonDetChoice _ _ Q    => Q
   end.
 
 Definition post_dec (dec : decorated) : Assertion :=
