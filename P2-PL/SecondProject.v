@@ -459,8 +459,6 @@ Inductive cstep : (com * result)  -> (com * result) -> Prop :=
       <{ assume b }> / RNormal st --> <{ assume b' }> / RNormal st
   | CS_AssumeTrue : forall st,
       <{ assume true }> / RNormal st --> <{ skip }> / RNormal st
-  | CS_AssumeFalse : forall st,
-      <{ assume false }> / RNormal st --> <{ skip }> / RError (*@TODO*)
   | CS_NonDetX1 : forall x1 x1' x2 st st',
       x1 / st --> x1' / st' ->
      <{ x1 !! x2 }> / st --> <{ x1' }> / st'
@@ -653,6 +651,7 @@ Inductive dcom : Type :=
 | DCAssume (l : bexp) (Q : Assertion)
   (* assume l {{ Q }} *)
 | DCNonDetChoice (d1 d2 : dcom) (Q : Assertion).
+  (* d1 !! d2 {{ Q }} *)
 
 (** To provide the initial precondition that goes at the very top of a
     decorated program, we introduce a new type [decorated]: *)
@@ -693,16 +692,15 @@ Notation " d ; d' "
 Notation "{{ P }} d"
       := (Decorated P d)
       (in custom com at level 91, P constr) : dcom_scope.
-(*@TODO review the following notations*)
 Notation "'assert' b {{ P }}"
       := (DCAssert b P)
       (in custom com at level 91, P constr) : dcom_scope.
 Notation "'assume' b {{ P }}"
       := (DCAssume b P)
       (in custom com at level 91, P constr) : dcom_scope.
-Notation "x1 '!!' x2 {{ P }}"
+Notation "x1 !! x2 {{ P }}"
       := (DCNonDetChoice x1 x2 P)
-      (in custom com at level 91, P constr) : dcom_scope.
+      (in custom com at level 0, P constr) : dcom_scope.
 Local Open Scope dcom_scope.
 
 (** An example [decorated] program that decrements [X] to [0]: *)
@@ -997,7 +995,7 @@ Proof.
     destruct H as [Hd HQ].
     eapply hoare_consequence_post; eauto.
   (* TODO *)
-Qed.
+Admitted.
 
 
 (** Now that all the pieces are in place, we can define what it means
@@ -1199,26 +1197,26 @@ Proof. verify. Qed.
     Hint: The loop invariant here must ensure that Z*Z is consistently
     less than or equal to X. *)
 
-(* TODO: fill in the assertions *)
+
 Definition sqrt_dec (m:nat) : decorated :=
   <{
-    {{ FILL_IN_HERE }} ->>
-    {{ FILL_IN_HERE }}
+    {{ X = m }} ->>
+    {{ X = m /\ 0 * 0 <= m }}
       Z := 0
-                    {{ FILL_IN_HERE }};
+                    {{ X = m /\ Z * Z <= m }};
       while ((Z+1)*(Z+1) <= X) do
-                    {{ FILL_IN_HERE  }} ->>
-                    {{ FILL_IN_HERE }}
+                    {{ X = m /\ Z * Z <= m /\ (Z + 1) * (Z + 1) <= X }} ->>
+                    {{ X = m /\ (Z + 1) * (Z + 1) <= m }}
         Z := Z + 1
-                    {{ FILL_IN_HERE }}
+                    {{ X = m /\ Z * Z <= m }}
       end
-    {{ FILL_IN_HERE }} ->>
-    {{ FILL_IN_HERE }}
+    {{ X = m /\ Z * Z <= m /\ ~((Z + 1) * (Z + 1) <= X) }} ->>
+    {{ Z * Z <= m /\ m < (Z + 1) * (Z + 1) }}
   }>.
 
 Theorem sqrt_correct : forall m,
   outer_triple_valid (sqrt_dec m).
-Proof. (* TODO *) Admitted.
+Proof. verify. Qed.
 
 
 
@@ -1279,25 +1277,38 @@ Proof.
   - replace (x+2) with (S ( S x)) in *; simpl in *; try lia.
 Qed.
 
+Check <{
+        X := X - 2
+          {{ fun st => parity (st X) = parity 1 }}
+      !!
+        X := X - 2
+          {{ fun st => parity (st X) = parity 1 }}
+          {{ fun st => parity (st X) = parity 1 }}
+}>.
 
 Definition parity_dec_nondet (m:nat) : decorated :=
-(* TODO: write a decorated version of the program shown above. The pre and post-conditions
-should not be changed. Note that the code below does
-not typecheck until you decorate it correctly. *)
 <{
-  {{ X = m }}
+  {{ fun st => st X = m}} ->> 
+    {{ fun st => parity (st X) = parity m }}
     while 2 <= X do
-      X := X - 2
-      !! 
-      X := X + 2
+      {{ fun st => parity (st X) = parity m /\ 2 <= st X }}
+        X := X - 2
+          {{ fun st => parity (st X) = parity m }}
+        !!
+        X := X + 2
+          {{ fun st => parity (st X) = parity m }}
+        {{ fun st => parity (st X) = parity m }}
     end
-  {{ X = parity m }} }>.
+    {{ fun st => parity (st X) = parity m /\ ~(2 <= st X) }} ->>
+    {{ fun st => st X = parity m }}
+}>.
 
 
 Theorem parity_outer_triple_valid_nondet : forall m,
   outer_triple_valid (parity_dec_nondet m).
 Proof. 
-  (* TODO *)
+  intros m. verify.
+  - 
 Qed.
 
 
