@@ -1277,24 +1277,17 @@ Proof.
   - replace (x+2) with (S ( S x)) in *; simpl in *; try lia.
 Qed.
 
-Check <{
-        X := X - 2
-          {{ fun st => parity (st X) = parity 1 }}
-      !!
-        X := X - 2
-          {{ fun st => parity (st X) = parity 1 }}
-          {{ fun st => parity (st X) = parity 1 }}
-}>.
-
 Definition parity_dec_nondet (m:nat) : decorated :=
 <{
   {{ fun st => st X = m}} ->> 
     {{ fun st => parity (st X) = parity m }}
     while 2 <= X do
-      {{ fun st => parity (st X) = parity m /\ 2 <= st X }}
+      {{ fun st => parity (st X) = parity m /\ 2 <= st X }} 
+        ->> {{ fun st => parity ((st X) - 2) = parity m }}
         X := X - 2
           {{ fun st => parity (st X) = parity m }}
         !!
+        ->> {{ fun st => parity ((st X) + 2) = parity m }}
         X := X + 2
           {{ fun st => parity (st X) = parity m }}
         {{ fun st => parity (st X) = parity m }}
@@ -1303,13 +1296,16 @@ Definition parity_dec_nondet (m:nat) : decorated :=
     {{ fun st => st X = parity m }}
 }>.
 
-
 Theorem parity_outer_triple_valid_nondet : forall m,
   outer_triple_valid (parity_dec_nondet m).
-Proof. 
-  intros m. verify.
-  - 
-Qed.
+Proof.
+  verify.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+Admitted.
 
 
 End DCom.
