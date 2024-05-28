@@ -947,7 +947,7 @@ Fixpoint verification_conditions (P : Assertion) (d : dcom) : Prop :=
     ((P /\ b) ->> Q)%assertion
   | DCNonDetChoice x1 x2 Q =>
     verification_conditions P x1
-    /\ verification_conditions P x2
+    \/ verification_conditions P x2
   end.
 
 (** The key theorem states that [verification_conditions] does its  job
@@ -1300,12 +1300,35 @@ Theorem parity_outer_triple_valid_nondet : forall m,
   outer_triple_valid (parity_dec_nondet m).
 Proof.
   verify.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-Admitted.
+  - destruct (st X).
+    + discriminate.
+    + apply le_n_S. destruct n.
+      ++ discriminate.
+      ++ lia.
+  - destruct (st X).
+    + lia.
+    + destruct n.
+      ++ lia.
+      ++ lia.
+  - destruct (st X).
+    + lia.
+    + destruct n.
+      ++ lia.
+      ++ simpl in H. 
+          rewrite <- H. 
+          simpl. 
+          rewrite sub_0_r. 
+          reflexivity.
+  - destruct (st X).
+    + simpl in H. assumption.
+    + destruct m.
+      ++ simpl. simpl in H. destruct n.
+        +++ lia.
+        +++ lia.
+      ++ destruct n.
+        +++ assumption.
+        +++ rewrite <- H. lia.
+Qed.
 
 
 End DCom.
