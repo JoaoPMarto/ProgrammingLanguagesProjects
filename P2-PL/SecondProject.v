@@ -466,8 +466,6 @@ Inductive cstep : (com * result)  -> (com * result) -> Prop :=
       <{ assume b }> / RNormal st --> <{ assume b' }> / RNormal st
   | CS_AssumeTrue : forall st,
       <{ assume true }> / RNormal st --> <{ skip }> / RNormal st
-  | CS_AssumeFalse : forall st,
-      <{ assume false }> / RNormal st --> <{ skip }> / RError (*@TODO*)
   | CS_NonDetX1 : forall x1 x1' x2 st st',
       x1 / st --> x1' / st' ->
      <{ x1 !! x2 }> / st --> <{ x1' }> / st'
