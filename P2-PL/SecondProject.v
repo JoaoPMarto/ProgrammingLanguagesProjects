@@ -382,7 +382,7 @@ Qed.
 (* ================================================================= *)
 
 Theorem hoare_assume: forall (P:Assertion) (b:bexp),
-  {{ P /\ b }} assume b {{ P /\ b }}.
+  {{ b -> P }} assume b {{ P }}.
 Proof.
   unfold hoare_triple. intros.
   inversion H. eauto.
