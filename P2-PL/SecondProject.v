@@ -402,16 +402,23 @@ Qed.
 (*               words what this example is demonstrating.           *)                                            
 (* ================================================================= *)
 
-(*
-
 Example hoare_choice_example:
   {{ X = 1 }}
   X := X + 1 !! X := X + 2
   {{ X = 2 \/ X = 3 }}.
 Proof.
+  unfold hoare_triple.
+  intros st r Heval HP.
+  inversion Heval; subst; clear Heval.
+  - inversion H3; subst; clear H3.
+    -- exists (X !-> (st X + 1); st). split.
+      --- reflexivity.
+      --- simpl. left . rewrite t_update_eq. simpl in HP. rewrite HP. reflexivity.
+  - inversion H3; subst; clear H3.
+    -- exists (X !-> (st X + 2) ; st). split.
+      --- reflexivity.
+      --- simpl. right. rewrite t_update_eq. simpl in HP. rewrite HP. reflexivity.
 Qed.
-
-*)
 
 
 (* ################################################################# *)
@@ -524,8 +531,28 @@ Example prog1_example1:
        prog1 / RNormal (X !-> 1) -->* <{ skip }> / RNormal st'
     /\ st' X = 2.
 Proof.
-  (* TODO *)
-Admitted.
+  eexists. split.
+  unfold prog1.
+
+  (* assume (X = 1) *)
+  eapply multi_step. apply CS_SeqStep. apply CS_AssumeStep. apply BS_Eq1. apply AS_Id.
+  eapply multi_step. apply CS_SeqStep. apply CS_AssumeStep. apply BS_Eq.
+  simpl. eapply multi_step. apply CS_SeqStep. apply CS_AssumeTrue.
+  
+  (* ((X := X + 1) !! (X := 3)) *)
+  eapply multi_step. apply CS_SeqFinish. 
+  eapply multi_step. apply CS_SeqStep. apply CS_NonDetX1. apply CS_AssStep. apply AS_Plus1. apply AS_Id.
+  eapply multi_step. apply CS_SeqStep. apply CS_AssStep. apply AS_Plus.
+  simpl. eapply multi_step. apply CS_SeqStep. apply CS_Asgn.
+  eapply multi_step. apply CS_SeqFinish.
+
+  (* assert (X = 2) *)
+  eapply multi_step. apply CS_AssertStep. apply BS_Eq1. apply AS_Id.
+  eapply multi_step. apply CS_AssertStep. apply BS_Eq.
+  simpl. eapply multi_step. apply CS_AssertTrue. apply multi_refl.
+
+  reflexivity.
+Qed.
 
 
 (* ################################################################# *)
@@ -536,8 +563,10 @@ Lemma one_step_aeval_a: forall st a a',
   a / st -->a a' ->
   aeval st a = aeval st a'.
 Proof.
-  (* TODO (Hint: you can prove this by induction on a) *)
-Admitted.
+  intros a a' st H.
+  induction H; simpl; try reflexivity;
+  repeat rewrite IHastep; reflexivity.
+Qed.
 
 
 (* ================================================================= *)
@@ -994,8 +1023,22 @@ Proof.
   - (* Post *)
     destruct H as [Hd HQ].
     eapply hoare_consequence_post; eauto.
-  (* TODO *)
-Admitted.
+  - (* Assert *)
+    destruct H as [Hpre [Hbody1 [Hpost1  Hd] ] ].
+    eapply hoare_consequence_pre; eauto.
+      + apply hoare_assert.
+      + assumption.
+  - (* Assume *)
+    destruct H as HPQ.
+    eapply hoare_consequence_pre; eauto.
+      + apply hoare_assume.
+      + assumption.
+  - (* NonDetChoice *)
+    destruct H as [H1 H2].
+    eapply hoare_choice.
+      + apply IHd1. apply H1.
+      + apply IHd2. apply H2.
+Qed.
 
 
 (** Now that all the pieces are in place, we can define what it means
