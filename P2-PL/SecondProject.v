@@ -78,6 +78,8 @@ Inductive com : Type :=
   | CAssume (b : bexp)  (* <- new *)
   | CNonDetChoice (c1 c2: com).  (* <- new *)
 
+Hint Constructors com : core.
+
 (* We now define notations. *)  
 Notation "'skip'"  :=
          CSkip (in custom com at level 0) : com_scope.
@@ -116,6 +118,7 @@ Inductive result : Type :=
   | RNormal : state -> result
   | RError : result.
 
+Hint Constructors result : core.
 
 (* ################################################################# *)
 (* EXERCISE 1 (1 point): Define a relational evaluation (big-step    *)
@@ -169,7 +172,7 @@ Inductive ceval : com -> state -> result -> Prop :=
   | E_AssertFalse : forall st l,
       beval st l = false ->
       st =[ assert l ]=> RError
-  | E_AssumeTrue : forall st l,
+  | E_Assume : forall st l,
       beval st l = true ->
       st =[ assume l ]=> RNormal st
   | E_NonDetChoiceX1 : forall st r x1 x2,
@@ -180,6 +183,7 @@ Inductive ceval : com -> state -> result -> Prop :=
       st =[ x1 !! x2 ]=> r
 where "st '=[' c ']=>' r" := (ceval c st r).
 
+Hint Constructors ceval : core.
 
 (** We redefine hoare triples: Now, [{{P}} c {{Q}}] means that,
     whenever [c] is started in a state satisfying [P], and terminates
@@ -212,15 +216,18 @@ Theorem assume_false: forall P Q b,
        (forall st, beval st b = false) ->
        ({{P}} assume b {{Q}}).
 Proof.
-  (* TODO *)
-Admitted.
+  unfold hoare_triple. intros.
+  inversion H0. specialize (H st).
+  rewrite H3 in H. discriminate.
+Qed.
 
 Theorem assert_implies_assume : forall P b Q,
      ({{P}} assert b {{Q}})
   -> ({{P}} assume b {{Q}}).
 Proof.
-  (* TODO *)
-Admitted.
+  unfold hoare_triple. intros P b Q H. intros. specialize (H st r).
+  inversion H0. subst. auto.
+Qed.
 
 
 (* ################################################################# *)
@@ -359,41 +366,41 @@ Qed.
 (* EXERCISE 3.1: State and prove [hoare_assert]                      *)
 (* ================================================================= *)
 
-(*
-
 Theorem hoare_assert: forall P (b: bexp),
-  Hoare proof rule for [assert b]
+  {{ P /\ b }} assert b {{ P }}.
 Proof.
+  unfold hoare_triple. intros.
+  inversion H; subst; eexists; split; destruct H0.
+  - reflexivity.
+  - assumption.
+  - inversion b0. rewrite H1 in H2. discriminate.
+  - apply p.
 Qed.
-
-*)
 
 (* ================================================================= *)
 (* EXERCISE 3.2: State and prove [hoare_assume]                      *)
 (* ================================================================= *)
 
-(*
-
 Theorem hoare_assume: forall (P:Assertion) (b:bexp),
-  Hoare proof rule for [assume b]
+  {{ b -> P }} assume b {{ P }}.
 Proof.
+  unfold hoare_triple. intros.
+  inversion H. eauto.
 Qed.
-
-*)
 
 
 (* ================================================================= *)
 (* EXERCISE 3.3: State and prove [hoare_choice]                      *)
 (* ================================================================= *)
 
-(*
-
 Theorem hoare_choice' : forall P c1 c2 Q,
-  Hoare proof rule for [c1 !! c2]
+  {{P}} c1 {{Q}} ->
+  {{P}} c2 {{Q}} ->
+  {{P}} c1 !! c2 {{Q}}.
 Proof.
+  unfold hoare_triple. intros.
+  inversion H1; eauto.
 Qed.
-
-*)
 
 
 (* ================================================================= *)
@@ -473,6 +480,8 @@ Inductive cstep : (com * result)  -> (com * result) -> Prop :=
       x2 / st --> x2' / st' ->
      <{ x1 !! x2 }> / st --> <{ x2' }> / st'
   where " t '/' st '-->' t' '/' st' " := (cstep (t,st) (t',st')).
+
+Hint Constructors cstep : core.
 
 Definition cmultistep := multi cstep.
 
@@ -681,6 +690,8 @@ Inductive dcom : Type :=
   (* assume l {{ Q }} *)
 | DCNonDetChoice (d1 d2 : dcom) (Q : Assertion).
   (* d1 !! d2 {{ Q }} *)
+
+Hint Constructors dcom : core.
 
 (** To provide the initial precondition that goes at the very top of a
     decorated program, we introduce a new type [decorated]: *)
