@@ -769,15 +769,15 @@ Example dec_while : decorated :=
 
 Fixpoint extract (d : dcom) : com :=
   match d with
-  | DCSkip _           => CSkip
-  | DCSeq d1 d2        => CSeq (extract d1) (extract d2)
-  | DCAsgn X a _       => CAsgn X a
-  | DCIf b _ d1 _ d2 _ => CIf b (extract d1) (extract d2)
-  | DCWhile b _ d _    => CWhile b (extract d)
-  | DCPre _ d          => extract d
-  | DCPost d _         => extract d
-  | DCAssert l _       => CAssert l
-  | DCAssume l _       => CAssume l
+  | DCSkip _               => CSkip
+  | DCSeq d1 d2            => CSeq (extract d1) (extract d2)
+  | DCAsgn X a _           => CAsgn X a
+  | DCIf b _ d1 _ d2 _     => CIf b (extract d1) (extract d2)
+  | DCWhile b _ d _        => CWhile b (extract d)
+  | DCPre _ d              => extract d
+  | DCPost d _             => extract d
+  | DCAssert l _           => CAssert l
+  | DCAssume l _           => CAssume l
   | DCNonDetChoice d1 d2 _ => CNonDetChoice (extract d1) (extract d2)
   end.
 
@@ -981,13 +981,14 @@ Fixpoint verification_conditions (P : Assertion) (d : dcom) : Prop :=
   | DCPost d Q =>
       verification_conditions P d
       /\ (post d ->> Q)
-  | DCAssert b Q => 
-    ((P /\ b) ->> Q)%assertion
-  | DCAssume b Q => 
-    ((P /\ b) ->> Q)%assertion
+  | DCAssert b Q =>
+    (P ->> (Q /\ b))%assertion
+  | DCAssume b Q =>
+    (P ->> (b -> Q))%assertion
   | DCNonDetChoice x1 x2 Q =>
+    (post x1) = Q /\ (post x2) = Q /\
     verification_conditions P x1
-    \/ verification_conditions P x2
+    /\ verification_conditions P x2
   end.
 
 (** The key theorem states that [verification_conditions] does its  job
@@ -1035,20 +1036,17 @@ Proof.
     destruct H as [Hd HQ].
     eapply hoare_consequence_post; eauto.
   - (* Assert *)
-    destruct H as [Hpre [Hbody1 [Hpost1  Hd] ] ].
-    eapply hoare_consequence_pre; eauto.
-      + apply hoare_assert.
-      + assumption.
+    eapply hoare_consequence_pre.
+    + apply hoare_assert.
+    + auto.
   - (* Assume *)
-    destruct H as HPQ.
-    eapply hoare_consequence_pre; eauto.
-      + apply hoare_assume.
-      + assumption.
+    eapply hoare_consequence_pre.
+    + apply hoare_assume.
+    + auto.
   - (* NonDetChoice *)
-    destruct H as [H1 H2].
-    eapply hoare_choice.
-      + apply IHd1. apply H1.
-      + apply IHd2. apply H2.
+    destruct H as [E1 [E2 [H1 H2]]]; eapply hoare_choice'.
+      + rewrite E1 in IHd1. apply IHd1. apply H1.
+      + rewrite E2 in IHd2. apply IHd2. apply H2.
 Qed.
 
 
@@ -1336,15 +1334,15 @@ Definition parity_dec_nondet (m:nat) : decorated :=
   {{ fun st => st X = m}} ->> 
     {{ fun st => parity (st X) = parity m }}
     while 2 <= X do
-      {{ fun st => parity (st X) = parity m /\ 2 <= st X }} 
-        ->> {{ fun st => parity ((st X) - 2) = parity m }}
+      {{ fun st => parity (st X) = parity m /\ 2 <= st X }}
+        (* ->> {{ fun st => parity ((st X) - 2) = parity m }} *)
         X := X - 2
           {{ fun st => parity (st X) = parity m }}
         !!
-        ->> {{ fun st => parity ((st X) + 2) = parity m }}
+        (* ->> {{ fun st => parity ((st X) + 2) = parity m }} *)
         X := X + 2
           {{ fun st => parity (st X) = parity m }}
-        {{ fun st => parity (st X) = parity m }}
+      {{ fun st => parity (st X) = parity m }}
     end
     {{ fun st => parity (st X) = parity m /\ ~(2 <= st X) }} ->>
     {{ fun st => st X = parity m }}
@@ -1356,32 +1354,33 @@ Proof.
   verify.
   - destruct (st X).
     + discriminate.
-    + apply le_n_S. destruct n.
-      ++ discriminate.
-      ++ lia.
+    + apply le_n_S. destruct n; lia.
+  - destruct (st X).
+    + lia.
+    + destruct n; lia.
   - destruct (st X).
     + lia.
     + destruct n.
       ++ lia.
-      ++ lia.
-  - destruct (st X).
-    + lia.
-    + destruct n.
-      ++ lia.
-      ++ simpl in H. 
-          rewrite <- H. 
-          simpl. 
-          rewrite sub_0_r. 
+      ++ simpl in H.
+          rewrite <- H.
+          simpl.
+          rewrite sub_0_r.
           reflexivity.
   - destruct (st X).
     + simpl in H. assumption.
     + destruct m.
       ++ simpl. simpl in H. destruct n.
-        +++ lia.
-        +++ lia.
+        +++ auto.
+        +++ simpl. simpl in H. rewrite parity_plus_2. auto.
       ++ destruct n.
-        +++ assumption.
-        +++ rewrite <- H. lia.
+        +++ auto.
+        +++ rewrite parity_plus_2. auto.
+  - destruct (st X).
+    + simpl in H. assumption.
+    + destruct m.
+      ++ simpl in H. simpl. destruct n; lia.
+      ++ destruct n; auto. rewrite <- H. lia.
 Qed.
 
 
